@@ -3,6 +3,7 @@ PROJECT(Gerrit_helper)
 
 set(CXX_STANDARD 17)
 set(C_STANDARD 99)
+set(CMAKE_BUILD_TYPE Debug)
 
 add_subdirectory(src)
 

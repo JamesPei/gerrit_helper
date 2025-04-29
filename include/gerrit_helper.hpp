@@ -3,6 +3,7 @@
 #define __GERRIT_HELPER__
 
 #include <string>
+#include <vector>
 #include <cpr/cpr.h>
 
 namespace GerritHelper{
@@ -13,7 +14,7 @@ public:
 
     bool Auth(std::string username, std::string passwd);
 
-    void Info(std::string id);
+    void Info(const std::vector<std::string>& ids, bool detail=false) const;
 
     bool Pick(std::string id);
 
