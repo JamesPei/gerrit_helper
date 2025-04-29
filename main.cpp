@@ -8,10 +8,12 @@ int main(int argc, char* argv[]){
 
     options.add_options()
         ("h,help", "print help messages")
-        ("a,auth", "authenticate", cxxopts::value<bool>(), "auth user identify")
+        ("a,auth", "authenticate", cxxopts::value<bool>(), "auth user identify")    // default true
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
         ("p,password", "password", cxxopts::value<std::string>()->default_value(""), "password")
-        ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value(""), "list of change-id or commit hash");
+        ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value({}), "list of change-id or commit hash")
+        ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path");
+        ("d,detail", "display more details", cxxopts::value<bool>(), "show details");
 
     auto result = options.parse(argc, argv);
 
@@ -30,14 +32,19 @@ int main(int argc, char* argv[]){
         std::string passwd=result["password"].as<std::string>();
 
         if(helper.Auth(user, passwd)){
-
+            std::cout << "Authentication Success!" << std::endl;
         }else{
-
+            std::cout << "Authentication Fail!" << std::endl;
         };
     }
 
     if (result.count("info")) {
-        auto info = result["info"].as<std::vector<std::string>>();
+        auto ids = result["info"].as<std::vector<std::string>>();
+        if(result.count("detail")){
+            helper.Info(ids);
+        }else{
+            helper.Info(ids);
+        }
     }
 
     return 0;
