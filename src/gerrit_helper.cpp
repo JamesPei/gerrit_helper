@@ -5,6 +5,9 @@
 #include "gerrit_helper.hpp"
 #include "common_macros.hpp"
 #include <nlohmann/json.hpp>
+#include "utils.hpp"
+
+
 using json = nlohmann::json;
 
 namespace GerritHelper{
@@ -38,11 +41,14 @@ bool GerritHelper::Auth(std::string user, std::string passwd){
     }
 };
 
-void GerritHelper::Info(const std::vector<std::string>& ids, bool detail) const {
+void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bool detail) const {
     cpr::Response r;
 
     for(auto id: ids){
-        if(std::all_of(id.begin(), id.end(), ::isdigit)){
+        if(id_type==ID_TYPE::TOPIC){
+            r = cpr::Get(cpr::Url(gerrit_url+"/a/changes/?q=topic:"+id), 
+                    cpr::Authentication(user, passwd, cpr::AuthMode::BASIC));
+        }else if(std::all_of(id.begin(), id.end(), ::isdigit)){
             r = cpr::Get(cpr::Url(gerrit_url+"/a/changes/"+id+"/detail"), 
                     cpr::Authentication(user, passwd, cpr::AuthMode::BASIC));
         }else if(std::all_of(id.begin(), id.end(), ::isalnum)){
@@ -51,35 +57,19 @@ void GerritHelper::Info(const std::vector<std::string>& ids, bool detail) const 
 
         if(r.status_code==200){
             if(r.header["content-type"].find("application/json")!=std::string::npos){
-                try {
-                    json json_obj = json::parse(r.text.substr(5));
-                    std::cout << "---------- change number:" << json_obj["_number"] << " ----------\n";
-                    std::cout << "change id:" << json_obj["change_id"] << "\n";
-                    std::cout << "project:" << json_obj["project"] << "\n";
-                    std::cout << "branch:" << json_obj["branch"] << "\n";
-                    std::cout << "subject:" << json_obj["subject"] << "\n";
+                    const std::string& raw_string{r.text.substr(5)};
+                    if(raw_string[0]!='{'){
+                        std::vector<std::pair<uint32_t, uint32_t>> result;
+                        get_json_string_from_raw(raw_string, result);
 
-                    std::string status = json_obj["status"].get<std::string>();
-                    if(status=="NEW") {
-                        std::cout << "status: NEW" << std::endl;
-                    }else if(status=="MERGED"){
-                        std::cout << "status:" << OUTPUT_GREEN << "MERGED" << COLOR_END << std::endl;
-                    }else if(status=="ABANDONED"){
-                        std::cout << "status:" << OUTPUT_RED << "ABANDONED" << COLOR_END << "\n";
+                        for(auto index_pair: result){
+                            std::string json_string = raw_string.substr(index_pair.first, index_pair.second-index_pair.first+1);
+                            parse_print(json_string, detail);
+                        }
+                    }else{
+                        parse_print(raw_string, detail);
                     }
 
-                    std::cout << "owner:" << json_obj["owner"]["name"] << "\n";
-                    std::cout << "created:" << json_obj["created"] << "\n";
-                    std::cout << "updated:" << json_obj["updated"] << "\n";
-
-                    if(detail){
-
-                    }
-
-                    std::cout << std::endl;
-                } catch (const json::parse_error& e) {
-                    std::cerr << "JSON 解析错误: " << e.what() << std::endl;
-                }
             }else{
                 std::cout << r.text << std::endl;
             }
@@ -88,6 +78,39 @@ void GerritHelper::Info(const std::vector<std::string>& ids, bool detail) const 
         }
     }
 };
+
+
+void GerritHelper::parse_print(const std::string& json_string, bool detail) const {
+    try{
+        json json_obj = json::parse(json_string);
+        std::cout << "---------- change number:" << json_obj["_number"] << " ----------\n";
+        std::cout << "change id:" << json_obj["change_id"] << "\n";
+        std::cout << "project:" << json_obj["project"] << "\n";
+        std::cout << "branch:" << json_obj["branch"] << "\n";
+        std::cout << "subject:" << json_obj["subject"] << "\n";
+
+        std::string status = json_obj["status"].get<std::string>();
+        if(status=="NEW") {
+            std::cout << "status: NEW" << std::endl;
+        }else if(status=="MERGED"){
+            std::cout << "status:" << OUTPUT_GREEN << "MERGED" << COLOR_END << std::endl;
+        }else if(status=="ABANDONED"){
+            std::cout << "status:" << OUTPUT_RED << "ABANDONED" << COLOR_END << "\n";
+        }
+
+        std::cout << "owner:" << json_obj["owner"]["name"] << "\n";
+        std::cout << "created:" << json_obj["created"] << "\n";
+        std::cout << "updated:" << json_obj["updated"] << "\n";
+
+        if(detail){
+
+        }
+
+        std::cout << std::endl;
+    }catch (const json::parse_error& e) {
+        std::cerr << "JSON 解析错误: " << e.what() << std::endl;
+    }
+}
 
 bool GerritHelper::Pick(std::string id){
     return true;

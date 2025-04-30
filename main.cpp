@@ -12,7 +12,8 @@ int main(int argc, char* argv[]){
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
         ("p,password", "password", cxxopts::value<std::string>()->default_value(""), "password")
         ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value({}), "list of change-id or commit hash")
-        ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path");
+        ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path")
+        ("t,topic", "query by topic", cxxopts::value<bool>(), "topic")
         ("d,detail", "display more details", cxxopts::value<bool>(), "show details");
 
     auto result = options.parse(argc, argv);
@@ -40,10 +41,15 @@ int main(int argc, char* argv[]){
 
     if (result.count("info")) {
         auto ids = result["info"].as<std::vector<std::string>>();
+
+        GerritHelper::GerritHelper::ID_TYPE id_type=GerritHelper::GerritHelper::ID_TYPE::CHANGE_NUM;  // change_num
+        if(result.count("topic")){
+            id_type = GerritHelper::GerritHelper::ID_TYPE::TOPIC;
+        }
         if(result.count("detail")){
-            helper.Info(ids);
+            helper.Info(ids, id_type, true);
         }else{
-            helper.Info(ids);
+            helper.Info(ids, id_type);
         }
     }
 
