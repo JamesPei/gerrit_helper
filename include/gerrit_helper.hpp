@@ -15,7 +15,7 @@ public:
     enum class ID_TYPE{
         CHANGE_ID=1,
         CHANGE_NUM,
-        HASH,
+        COMMIT_ID,
         TOPIC
     };
 
@@ -25,7 +25,7 @@ public:
 
     void Info(const std::vector<std::string>& ids, ID_TYPE type, bool detail=false) const;
 
-    bool Pick(std::string id);
+    bool Pick(const std::string id, const std::vector<std::string>& branches);
 
 private:
     bool access_check();

@@ -45,14 +45,17 @@ bool GerritHelper::Auth(std::string user, std::string passwd, std::string url){
 
 void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bool detail) const {
     for(auto id: ids){
+        json json_obj;
         if(id_type==ID_TYPE::TOPIC){
             std::vector<json> json_objs;
             get_change_by_topic(id, json_objs, detail);
             for(json obj:json_objs){
                 print_change_info(obj, detail);
             }
+        }else if (id_type==ID_TYPE::COMMIT_ID){
+            get_change_by_commit(id, json_obj, detail);
+            print_change_info(json_obj, detail);
         }else{
-            json json_obj;
             get_change_by_id(id, json_obj, detail);
             print_change_info(json_obj, detail);
         }
@@ -96,8 +99,46 @@ void GerritHelper::print_change_info(const json& json_obj, bool detail) const {
     std::cout << std::endl;
 }
 
-bool GerritHelper::Pick(std::string id){
-    return true;
+bool GerritHelper::Pick(const std::string commit_id, const std::vector<std::string>& branches){
+    
+    json commit_info;
+    get_change_by_commit(commit_id, commit_info, false);
+    if(commit_info.contains("project") && commit_info["project"].is_string()){
+        std::string project = commit_info["project"].get<std::string>();
+
+        cpr::Response r;
+        for(std::string branch: branches){
+            r = cpr::Post(cpr::Url(gerrit_url+"/a/projects/"+project+"/commits/"+commit_id+"/cherrypick"), 
+                    cpr::Authentication(user, passwd, cpr::AuthMode::BASIC),
+                    cpr::Body{
+                        "{\"destination\":\""+branch+"\"}"
+                    },
+                    cpr::Header{{"Content-Type", "application/json;charset=UTF-8"}}
+                );
+
+            if(r.status_code==200){
+                if(r.header["content-type"].find("application/json")!=std::string::npos){
+                    const std::string& raw_string{r.text.substr(5)};
+                    json result;
+                    result = json::parse(raw_string); 
+                    print_change_info(result, false);
+                    std::cout << "mergeable:" << result["mergeable"] << std::endl;
+                }else{
+                    std::cout << r.text << std::endl;
+                }
+            }else if(r.status_code==401 && r.text=="Unauthorized"){
+                std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
+                return false;
+            }else{
+                std::cout << OUTPUT_RED << r.text <<  COLOR_END << std::endl;
+                return false;
+            }
+        }
+        return true;
+    }else{
+        std::cout << OUTPUT_RED << "can't find project, please check the commit is correct" <<  COLOR_END << std::endl;
+        return false;
+    }
 };
 
 void GerritHelper::get_change_by_id(const std::string& id, json& change_info, bool detail) const {
@@ -120,6 +161,28 @@ void GerritHelper::get_change_by_id(const std::string& id, json& change_info, bo
 
 void GerritHelper::get_change_by_commit(const std::string& commit, json& change_info, bool detail) const {
     cpr::Response r;
+    r = cpr::Get(cpr::Url(gerrit_url+"/a/changes/?q=commit:"+commit), 
+            cpr::Authentication(user, passwd, cpr::AuthMode::BASIC));
+    if(r.status_code==200){
+        if(r.header["content-type"].find("application/json")!=std::string::npos){
+                const std::string& raw_string{r.text.substr(5)};
+                if(raw_string[0]!='{'){
+                    std::vector<std::pair<uint32_t, uint32_t>> result;
+                    get_json_string_from_raw(raw_string, result);
+
+                    for(auto index_pair: result){
+                        std::string json_string = raw_string.substr(index_pair.first, index_pair.second-index_pair.first+1);
+                        change_info = json::parse(json_string);
+                        return;
+                    }
+                }
+        }else{
+            std::cout << r.text << std::endl;
+        }
+    }else if(r.status_code==401 && r.text=="Unauthorized"){
+        std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
+        exit(0);
+    }
 };
 
 void GerritHelper::get_change_by_topic(const std::string& topic, std::vector<json>& changes_info, bool detail) const {
