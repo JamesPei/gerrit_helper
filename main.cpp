@@ -8,11 +8,11 @@ int main(int argc, char* argv[]){
 
     options.add_options()
         ("command", "command type", cxxopts::value<std::string>(), "info|pick|trace")
-        ("value", "value for info or pick", cxxopts::value<std::string>(), "value") // 通用参数
+        ("value", "value for info or pick", cxxopts::value<std::vector<std::string>>()->default_value({}), "value") // 通用参数
         ("h,help", "print help messages")
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
         ("p,password", "password", cxxopts::value<std::string>()->default_value(""), "password")
-        ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value({}), "list of change-id or commit hash")
+        // ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value({}), "list of change-id or commit hash")
         ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path")
         ("t,topic", "set topic", cxxopts::value<bool>(), "topic")
         ("c,commit", "set commit", cxxopts::value<bool>(), "commit id")
@@ -38,17 +38,17 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    std::string value;
+    std::vector<std::string> values;
     if (result.count("value")) {
-        value = result["value"].as<std::string>();
+        values = result["value"].as<std::vector<std::string>>();
     }
 
     GerritHelper::GerritHelper helper = GerritHelper::GerritHelper();
 
     if (command == "info") {
         std::vector<std::string> ids;
-        if (!value.empty()) {
-            ids.push_back(value); // 将第二个位置参数作为 info 的值
+        if (!values.empty()) {
+            ids.insert(ids.end(), values.begin(), values.end());
         }
         if (result.count("i")) {
             auto additional_ids = result["i"].as<std::vector<std::string>>();
@@ -68,8 +68,8 @@ int main(int argc, char* argv[]){
             helper.Info(ids, id_type);
         }
     } else if (command == "pick") {
-        if (!value.empty() && result.count("branch")) {
-            std::string commit_id = value; // 将第二个位置参数作为 pick 的值
+        if (!values.empty() && result.count("branch")) {
+            std::string commit_id = values[0]; // 将第二个位置参数作为 pick 的值
             auto branches = result["branch"].as<std::vector<std::string>>();
             helper.Pick(commit_id, branches);
         } else {
