@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 #include <cpr/cpr.h>
+#include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
 namespace GerritHelper{
 
 class GerritHelper{
@@ -17,9 +19,9 @@ public:
         TOPIC
     };
 
-    GerritHelper(std::string url="https://gerrit.senseauto.com");
+    GerritHelper();
 
-    bool Auth(std::string username, std::string passwd);
+    bool Auth(std::string username, std::string passwd, std::string url);
 
     void Info(const std::vector<std::string>& ids, ID_TYPE type, bool detail=false) const;
 
@@ -28,8 +30,13 @@ public:
 private:
     bool access_check();
 
-    void parse_print(const std::string& json_string ,bool detail=false) const;
+    void print_change_info(const json& json_obj, bool detail=false) const;
 
+    void get_change_by_id(const std::string& id, json& json_obj, bool detail=false) const;
+    void get_change_by_commit(const std::string& commit, json& json_obj, bool detail=false) const;
+    void get_change_by_topic(const std::string& topic, std::vector<json>& json_objs, bool detail=false) const;
+
+    void get_account(const std::string& id, json& json_obj) const;
 
 private:
     std::string user;
