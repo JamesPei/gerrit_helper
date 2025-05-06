@@ -72,11 +72,11 @@ void GerritHelper::print_change_info(const json& json_obj, bool detail) const {
 
     std::string status = json_obj["status"].get<std::string>();
     if(status=="NEW") {
-        std::cout << "status: NEW" << std::endl;
+        std::cout << "status:" << OUTPUT_BLUE << "NEW" << COLOR_END << std::endl;
     }else if(status=="MERGED"){
         std::cout << "status:" << OUTPUT_GREEN << "MERGED" << COLOR_END << std::endl;
     }else if(status=="ABANDONED"){
-        std::cout << "status:" << OUTPUT_RED << "ABANDONED" << COLOR_END << "\n";
+        std::cout << "status:" << OUTPUT_YELLOW << "ABANDONED" << COLOR_END << "\n";
     }
 
     if (json_obj["owner"].contains("name") && json_obj["owner"]["name"].is_string()) {
