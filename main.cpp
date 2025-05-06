@@ -8,18 +8,19 @@ int main(int argc, char* argv[]){
 
     options.add_options()
         ("command", "command type", cxxopts::value<std::string>(), "info|pick|trace")
+        ("value", "value for info or pick", cxxopts::value<std::string>(), "value") // 通用参数
         ("h,help", "print help messages")
-        ("a,auth", "authenticate", cxxopts::value<bool>(), "auth user identify")    // default true
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
-        ("url", "gerrit url", cxxopts::value<std::string>()->default_value(""), "gerrit url")
         ("p,password", "password", cxxopts::value<std::string>()->default_value(""), "password")
         ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value({}), "list of change-id or commit hash")
         ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path")
-        ("t,topic", "query by topic", cxxopts::value<bool>(), "topic")
+        ("t,topic", "set topic", cxxopts::value<bool>(), "topic")
+        ("c,commit", "set commit", cxxopts::value<bool>(), "commit id")
+        ("branch", "which branches to pick", cxxopts::value<std::vector<std::string>>()->default_value({}), "branch name")
         ("d,detail", "display more details", cxxopts::value<bool>(), "show details");
 
-    // 设置第一个位置参数为操作类型
-    options.parse_positional({"command", "info"});
+    // 设置第一个位置参数为操作类型，第二个位置参数为通用值
+    options.parse_positional({"command", "value"});
 
     auto result = options.parse(argc, argv);
 
@@ -29,48 +30,57 @@ int main(int argc, char* argv[]){
     }
 
     std::string command;
-    if(result.count("command")){
+    if (result.count("command")) {
         command = result["command"].as<std::string>();
-    }else{
-        std::cout << "Error: No operation specified. Use 'info' or 'trace'.\n";
+    } else {
+        std::cout << "Error: No operation specified. Use 'info' or 'pick'.\n";
         std::cout << "Use --help for more information.\n";
         exit(1);
     }
 
-    GerritHelper::GerritHelper helper= GerritHelper::GerritHelper();
+    std::string value;
+    if (result.count("value")) {
+        value = result["value"].as<std::string>();
+    }
 
-    if (command == "auth") {
-        if(!result.count("user") || !result.count("password") || !result.count("url")){
-            exit(0);
+    GerritHelper::GerritHelper helper = GerritHelper::GerritHelper();
+
+    if (command == "info") {
+        std::vector<std::string> ids;
+        if (!value.empty()) {
+            ids.push_back(value); // 将第二个位置参数作为 info 的值
         }
-        std::string user=result["user"].as<std::string>();
-        std::string passwd=result["password"].as<std::string>();
-        std::string url=result["url"].as<std::string>();
+        if (result.count("i")) {
+            auto additional_ids = result["i"].as<std::vector<std::string>>();
+            ids.insert(ids.end(), additional_ids.begin(), additional_ids.end());
+        }
 
-        if(helper.Auth(user, passwd, url)){
-            std::cout << "Authentication Success!" << std::endl;
-        }else{
-            std::cout << "Authentication Fail!" << std::endl;
-        };
-    }else if (command == "info") {
-        auto ids = result["info"].as<std::vector<std::string>>();
-
-        GerritHelper::GerritHelper::ID_TYPE id_type=GerritHelper::GerritHelper::ID_TYPE::CHANGE_NUM;  // change_num
-        if(result.count("topic")){
+        GerritHelper::GerritHelper::ID_TYPE id_type = GerritHelper::GerritHelper::ID_TYPE::CHANGE_NUM;
+        if (result.count("topic")) {
             id_type = GerritHelper::GerritHelper::ID_TYPE::TOPIC;
+        } else if (result.count("commit")) {
+            id_type = GerritHelper::GerritHelper::ID_TYPE::COMMIT_ID;
         }
 
-        if(result.count("detail")){
+        if (result.count("detail")) {
             helper.Info(ids, id_type, true);
-        }else{
+        } else {
             helper.Info(ids, id_type);
         }
-    }else if(command == "pick") {
-        auto ids = result["info"].as<std::vector<std::string>>();
-        for(auto id: ids){
-            helper.Pick(id);
+    } else if (command == "pick") {
+        if (!value.empty() && result.count("branch")) {
+            std::string commit_id = value; // 将第二个位置参数作为 pick 的值
+            auto branches = result["branch"].as<std::vector<std::string>>();
+            helper.Pick(commit_id, branches);
+        } else {
+            std::cout << "Error: No commit id or branch specified.\n";
+            std::cout << "Use --help for more information.\n";
+            exit(1);
         }
-
+    } else {
+        std::cout << "Error: Invalid operation '" << command << "'. Use 'info' or 'pick'.\n";
+        std::cout << "Use --help for more information.\n";
+        exit(1);
     }
 
     return 0;
