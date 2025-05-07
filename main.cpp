@@ -12,7 +12,6 @@ int main(int argc, char* argv[]){
         ("h,help", "print help messages")
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
         ("p,password", "password", cxxopts::value<std::string>()->default_value(""), "password")
-        // ("i,info", "look change/commit info", cxxopts::value<std::vector<std::string>>()->default_value({}), "list of change-id or commit hash")
         ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path")
         ("t,topic", "set topic", cxxopts::value<bool>(), "topic")
         ("c,commit", "set commit", cxxopts::value<bool>(), "commit id")
@@ -50,9 +49,20 @@ int main(int argc, char* argv[]){
         if (!values.empty()) {
             ids.insert(ids.end(), values.begin(), values.end());
         }
-        if (result.count("i")) {
-            auto additional_ids = result["i"].as<std::vector<std::string>>();
-            ids.insert(ids.end(), additional_ids.begin(), additional_ids.end());
+
+        if (result.count("file")) {
+            std::string file_path = result["file"].as<std::string>();
+            std::ifstream file(file_path);
+            if (file.is_open()) {
+                std::string line;
+                while (std::getline(file, line)) {
+                    ids.push_back(line);
+                }
+                file.close();
+            } else {
+                std::cout << "Error: Unable to open file " << file_path << "\n";
+                exit(1);
+            }
         }
 
         GerritHelper::GerritHelper::ID_TYPE id_type = GerritHelper::GerritHelper::ID_TYPE::CHANGE_NUM;
