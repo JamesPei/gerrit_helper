@@ -108,7 +108,7 @@ void GerritHelper::print_change_info(const json& json_obj, bool detail) const {
         // if(json_obj.contains("cherry_pick_of_patch_set") && json_obj["cherry_pick_of_patch_set"].is_structured()){
             // std::cout << "cherry_pick_of_patch_set:" << json_obj["cherry_pick_of_patch_set"] << "\n";
         // }
-        if(json_obj.contains("current_revision_number") && json_obj["current_revision_number"].is_string()){
+        if(json_obj.contains("current_revision_number") && json_obj["current_revision_number"].is_number()){
             std::cout << "current_revision_number:" << json_obj["current_revision_number"] << "\n";
         }
         if(json_obj.contains("current_revision") && json_obj["current_revision"].is_string()){
