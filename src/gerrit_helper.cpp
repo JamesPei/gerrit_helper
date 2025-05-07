@@ -44,7 +44,10 @@ bool GerritHelper::Auth(std::string user, std::string passwd, std::string url){
 };
 
 void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bool detail) const {
+    std::cout << OUTPUT_GREEN << "Total:" << ids.size() << COLOR_END << std::endl;
+    uint32_t num=1;
     for(auto id: ids){
+        std::cout << num++ << "/" << ids.size() << ":" << std::endl;
         json json_obj;
         if(id_type==ID_TYPE::TOPIC){
             std::vector<json> json_objs;
@@ -64,7 +67,7 @@ void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bo
 
 
 void GerritHelper::print_change_info(const json& json_obj, bool detail) const {
-    std::cout << "---------- change number:" << json_obj["_number"] << " ----------\n";
+    std::cout << "change number:" << json_obj["_number"] << "\n";
     std::cout << "change id:" << json_obj["change_id"] << "\n";
     std::cout << "project:" << json_obj["project"] << "\n";
     std::cout << "branch:" << json_obj["branch"] << "\n";
@@ -91,9 +94,26 @@ void GerritHelper::print_change_info(const json& json_obj, bool detail) const {
 
     std::cout << "created:" << json_obj["created"] << "\n";
     std::cout << "updated:" << json_obj["updated"] << "\n";
+    if(json_obj.contains("submitted") && json_obj["submitted"].is_string()){
+        std::cout << "submitted:" << json_obj["submitted"] << "\n";
+    }
 
     if(detail){
-
+        if(json_obj.contains("revert_of") && json_obj["revert_of"].is_string()){
+            std::cout << "revert_of:" << json_obj["revert_of"] << "\n";
+        }
+        if(json_obj.contains("cherry_pick_of_change") && json_obj["cherry_pick_of_change"].is_string()){
+            std::cout << "cherry_pick_of_change:" << json_obj["cherry_pick_of_change"] << "\n";
+        }
+        // if(json_obj.contains("cherry_pick_of_patch_set") && json_obj["cherry_pick_of_patch_set"].is_structured()){
+            // std::cout << "cherry_pick_of_patch_set:" << json_obj["cherry_pick_of_patch_set"] << "\n";
+        // }
+        if(json_obj.contains("current_revision_number") && json_obj["current_revision_number"].is_number()){
+            std::cout << "current_revision_number:" << json_obj["current_revision_number"] << "\n";
+        }
+        if(json_obj.contains("current_revision") && json_obj["current_revision"].is_string()){
+            std::cout << "current_revision:" << json_obj["current_revision"] << "\n";
+        }
     }
 
     std::cout << std::endl;
