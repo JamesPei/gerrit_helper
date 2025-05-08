@@ -46,22 +46,30 @@ bool GerritHelper::Auth(std::string user, std::string passwd, std::string url){
 void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bool detail) const {
     std::cout << OUTPUT_GREEN << "Total:" << ids.size() << COLOR_END << std::endl;
     uint32_t num=1;
+    std::vector<json> json_objs;
     for(auto id: ids){
-        std::cout << num++ << "/" << ids.size() << ":" << std::endl;
         json json_obj;
         if(id_type==ID_TYPE::TOPIC){
-            std::vector<json> json_objs;
             get_change_by_topic(id, json_objs, detail);
-            for(json obj:json_objs){
-                print_change_info(obj, detail);
-            }
         }else if (id_type==ID_TYPE::COMMIT_ID){
             get_change_by_commit(id, json_obj, detail);
-            print_change_info(json_obj, detail);
+            // print_change_info(json_obj, detail);
+            json_objs.push_back(json_obj);
         }else{
             get_change_by_id(id, json_obj, detail);
-            print_change_info(json_obj, detail);
+            // print_change_info(json_obj, detail);
+            json_objs.push_back(json_obj);
         }
+    }
+
+    // sorted by json_obj["updated"]
+    std::sort(json_objs.begin(), json_objs.end(), [](const json& a, const json& b) {
+        return a["updated"].get<std::string>() < b["updated"].get<std::string>();
+    });
+
+    std::cout << num++ << "/" << ids.size() << ":" << std::endl;
+    for(const json obj:json_objs){
+        print_change_info(obj, detail);
     }
 };
 
