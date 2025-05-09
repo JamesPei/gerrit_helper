@@ -13,6 +13,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:/usr/local/include/gerrit_helper>
     )
+target_link_directories(${PROJECT_NAME} PRIVATE 
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<INSTALL_INTERFACE:/usr/local/lib>
+    )
 target_link_libraries(${PROJECT_NAME} PRIVATE gerrit_helper)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

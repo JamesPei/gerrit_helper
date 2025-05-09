@@ -43,7 +43,7 @@ bool GerritHelper::Auth(std::string user, std::string passwd, std::string url){
     }
 };
 
-void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bool detail) const {
+void GerritHelper::Info(const std::vector<std::string>& ids, GerritHelper::ID_TYPE id_type, bool detail, const std::string* output_path) const {
     std::cout << OUTPUT_GREEN << "Total:" << ids.size() << COLOR_END << std::endl;
     uint32_t num=1;
     std::vector<json> json_objs;
@@ -53,13 +53,16 @@ void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bo
             get_change_by_topic(id, json_objs, detail);
         }else if (id_type==ID_TYPE::COMMIT_ID){
             get_change_by_commit(id, json_obj, detail);
-            // print_change_info(json_obj, detail);
             json_objs.push_back(json_obj);
         }else{
             get_change_by_id(id, json_obj, detail);
-            // print_change_info(json_obj, detail);
             json_objs.push_back(json_obj);
         }
+    }
+
+    if(json_objs.empty()){
+        std::cout << OUTPUT_YELLOW << "No changes found!" << COLOR_END << std::endl;
+        return;
     }
 
     // sorted by json_obj["updated"]
@@ -70,6 +73,19 @@ void GerritHelper::Info(const std::vector<std::string>& ids, ID_TYPE id_type, bo
     std::cout << num++ << "/" << ids.size() << ":" << std::endl;
     for(const json obj:json_objs){
         print_change_info(obj, detail);
+    }
+
+
+    if(*output_path!=""){
+        std::ofstream output_file(*output_path, std::ios::out);
+        if(!output_file.is_open()){
+            std::cout << OUTPUT_RED << "Error: Unable to open file " << *output_path << "\n" << COLOR_END;
+            return;
+        }
+        for(const json json_obj:json_objs){
+            output_file << json_obj["_number"] << std::endl;
+        }
+        output_file.close();
     }
 };
 
@@ -183,7 +199,7 @@ void GerritHelper::get_change_by_id(const std::string& id, json& change_info, bo
         }
     }else if(r.status_code==401 && r.text=="Unauthorized"){
         std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
-        exit(0);
+        exit(1);
     }
 };
 
@@ -209,7 +225,7 @@ void GerritHelper::get_change_by_commit(const std::string& commit, json& change_
         }
     }else if(r.status_code==401 && r.text=="Unauthorized"){
         std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
-        exit(0);
+        exit(1);
     }
 };
 
@@ -239,7 +255,7 @@ void GerritHelper::get_change_by_topic(const std::string& topic, std::vector<jso
         }
     }else if(r.status_code==401 && r.text=="Unauthorized"){
         std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
-        exit(0);
+        exit(1);
     }
 };
 
@@ -261,7 +277,7 @@ void GerritHelper::get_account(const std::string& id, json& account_info) const 
         }
     }else if(r.status_code==401 && r.text=="Unauthorized"){
         std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
-        exit(0);
+        exit(1);
     }
 };
 

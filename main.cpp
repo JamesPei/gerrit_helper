@@ -11,12 +11,14 @@ int main(int argc, char* argv[]){
         ("value", "value for info or pick", cxxopts::value<std::vector<std::string>>()->default_value({}), "value") // 通用参数
         ("h,help", "print help messages")
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
+        ("url", "gerrit url", cxxopts::value<std::string>()->default_value(""), "gerrit url")
         ("p,password", "password", cxxopts::value<std::string>()->default_value(""), "password")
         ("f,file", "assign a file path", cxxopts::value<std::string>()->default_value(""), "file path")
         ("t,topic", "set topic", cxxopts::value<bool>(), "topic")
         ("c,commit", "set commit", cxxopts::value<bool>(), "commit id")
         ("branch", "which branches to pick", cxxopts::value<std::vector<std::string>>()->default_value({}), "branch name")
-        ("d,detail", "display more details", cxxopts::value<bool>(), "show details");
+        ("d,detail", "display more details", cxxopts::value<bool>(), "show details")
+        ("o,output", "output result to a file", cxxopts::value<std::string>(), "output file");
 
     // 设置第一个位置参数为操作类型，第二个位置参数为通用值
     options.parse_positional({"command", "value"});
@@ -44,7 +46,25 @@ int main(int argc, char* argv[]){
 
     GerritHelper::GerritHelper helper = GerritHelper::GerritHelper();
 
-    if (command == "info") {
+    std::string output_path;
+    if(result.count("output")){
+        output_path = result["output"].as<std::string>();
+    }
+
+    if (command == "auth") {
+        if(!result.count("user") || !result.count("password") || !result.count("url")){
+            exit(0);
+        }
+        std::string user=result["user"].as<std::string>();
+        std::string passwd=result["password"].as<std::string>();
+        std::string url=result["url"].as<std::string>();
+
+        if(helper.Auth(user, passwd, url)){
+            std::cout << "Authentication Success!" << std::endl;
+        }else{
+            std::cout << "Authentication Fail!" << std::endl;
+        };
+    }else if (command == "info") {
         std::vector<std::string> ids;
         if (!values.empty()) {
             ids.insert(ids.end(), values.begin(), values.end());
@@ -73,9 +93,9 @@ int main(int argc, char* argv[]){
         }
 
         if (result.count("detail")) {
-            helper.Info(ids, id_type, true);
+            helper.Info(ids, id_type, true, &output_path);
         } else {
-            helper.Info(ids, id_type);
+            helper.Info(ids, id_type, false, &output_path);
         }
     } else if (command == "pick") {
         if (!values.empty() && result.count("branch")) {

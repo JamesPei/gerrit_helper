@@ -23,7 +23,7 @@ public:
 
     bool Auth(std::string username, std::string passwd, std::string url);
 
-    void Info(const std::vector<std::string>& ids, ID_TYPE type, bool detail=false) const;
+    void Info(const std::vector<std::string>& ids, ID_TYPE type, bool detail=false, const std::string* output_path=nullptr) const;
 
     bool Pick(const std::string id, const std::vector<std::string>& branches);
 
