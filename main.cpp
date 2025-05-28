@@ -8,7 +8,7 @@ int main(int argc, char* argv[]){
 
     options.add_options()
         ("command", "command type", cxxopts::value<std::string>(), "info|pick|trace")
-        ("value", "value for info or pick", cxxopts::value<std::vector<std::string>>()->default_value({}), "value") // 通用参数
+        ("value", "value for info|pick|auth", cxxopts::value<std::vector<std::string>>()->default_value({}), "value") // 通用参数
         ("h,help", "print help messages")
         ("u,user", "username", cxxopts::value<std::string>()->default_value(""), "username")
         ("url", "gerrit url", cxxopts::value<std::string>()->default_value(""), "gerrit url")
@@ -26,7 +26,20 @@ int main(int argc, char* argv[]){
     auto result = options.parse(argc, argv);
 
     if (result.count("help")) {
-        std::cout << options.help() << std::endl;
+        std::cout << "gerrit_helper <command> [OPTION...]\n";
+        std::cout << "Usage:\n";
+        std::cout << "   command: can be auth|info|pick \n";
+        std::stringstream help_text(options.help());
+        std::string line_content;
+
+        int i=0;
+        while(std::getline(help_text, line_content)){
+            if(i<3){
+                i++;
+                continue;
+            }
+            std::cout << line_content << std::endl;
+        }
         exit(0);
     }
 
@@ -34,7 +47,7 @@ int main(int argc, char* argv[]){
     if (result.count("command")) {
         command = result["command"].as<std::string>();
     } else {
-        std::cout << "Error: No operation specified. Use 'info' or 'pick'.\n";
+        std::cout << "Error: No operation specified. Use 'info|pick|auth'.\n";
         std::cout << "Use --help for more information.\n";
         exit(1);
     }
@@ -76,7 +89,13 @@ int main(int argc, char* argv[]){
             if (file.is_open()) {
                 std::string line;
                 while (std::getline(file, line)) {
-                    ids.push_back(line);
+                    // strim line to remove leading and trailing whitespace
+                    size_t head = line.find_first_not_of(" \t\n\r\f\v");
+                    size_t tail = line.find_last_not_of(" \t\n\r\f\v");
+                    if(head == std::string::npos || tail == std::string::npos) {
+                        continue; // skip empty lines
+                    }
+                    ids.push_back(line.substr(head, tail-head+1));
                 }
                 file.close();
             } else {

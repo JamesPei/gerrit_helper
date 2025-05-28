@@ -197,8 +197,8 @@ void GerritHelper::get_change_by_id(const std::string& id, json& change_info, bo
         }else{
             std::cout << r.text << std::endl;
         }
-    }else if(r.status_code==401 && r.text=="Unauthorized"){
-        std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
+    }else{
+        std::cout << OUTPUT_RED << "Get info failed:" << r.error.message << "; if you are not authenticated, execute auth first" << COLOR_END << std::endl;
         exit(1);
     }
 };
@@ -223,8 +223,8 @@ void GerritHelper::get_change_by_commit(const std::string& commit, json& change_
         }else{
             std::cout << r.text << std::endl;
         }
-    }else if(r.status_code==401 && r.text=="Unauthorized"){
-        std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
+    }else{
+        std::cout << OUTPUT_RED << "Get info failed:" << r.error.message << "; if you are not authenticated, execute auth first" << COLOR_END << std::endl;
         exit(1);
     }
 };
@@ -253,8 +253,8 @@ void GerritHelper::get_change_by_topic(const std::string& topic, std::vector<jso
         }else{
             std::cout << r.text << std::endl;
         }
-    }else if(r.status_code==401 && r.text=="Unauthorized"){
-        std::cout << OUTPUT_RED << "Unauthorized! execute auth first" <<  COLOR_END << std::endl;
+    }else{
+        std::cout << OUTPUT_RED << "Get info failed:" << r.error.message << "; if you are not authenticated, execute auth first" << COLOR_END << std::endl;
         exit(1);
     }
 };
