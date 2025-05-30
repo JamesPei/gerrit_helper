@@ -10,6 +10,13 @@
 using json = nlohmann::json;
 namespace GerritHelper{
 
+struct PickResult{
+    std::string commit_hash;
+    std::string branch;
+    std::string message;
+    bool success;
+};
+
 class GerritHelper{
 public:
     enum class ID_TYPE{
@@ -25,7 +32,7 @@ public:
 
     void Info(const std::vector<std::string>& ids, ID_TYPE type, bool detail=false, const std::string* output_path=nullptr) const;
 
-    bool Pick(const std::string id, const std::vector<std::string>& branches);
+    void Pick(const std::vector<std::string>& commit_hashes, const std::vector<std::string>& branches, std::vector<PickResult>& result);
 
 private:
     bool access_check();
