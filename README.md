@@ -15,7 +15,7 @@
 ```
 gerrit_helper <command> [OPTION...]
 Usage:
-  gerrit_helper [OPTION...] positional parameters
+   command: can be auth|info|pick 
 
   -h, --help                print help messages
   -u, --user username       username (default: "")

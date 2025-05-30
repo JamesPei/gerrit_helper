@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include "gerrit_helper.hpp"
+#include "common_macros.hpp"
 
 int main(int argc, char* argv[]){
     cxxopts::Options options("gerrit_helper", "gerrit_helper <command> [OPTION...]");
@@ -63,6 +64,16 @@ int main(int argc, char* argv[]){
     if(result.count("output")){
         output_path = result["output"].as<std::string>();
     }
+    
+    std::ifstream file;
+    if (result.count("file")) {
+        std::string file_path = result["file"].as<std::string>();
+        file.open(file_path);
+        if (!file.is_open()) {
+            std::cout << "Error: Unable to open file " << file_path << "\n";
+            exit(1);
+        }
+    }
 
     if (command == "auth") {
         if(!result.count("user") || !result.count("password") || !result.count("url")){
@@ -83,24 +94,16 @@ int main(int argc, char* argv[]){
             ids.insert(ids.end(), values.begin(), values.end());
         }
 
-        if (result.count("file")) {
-            std::string file_path = result["file"].as<std::string>();
-            std::ifstream file(file_path);
-            if (file.is_open()) {
-                std::string line;
-                while (std::getline(file, line)) {
-                    // strim line to remove leading and trailing whitespace
-                    size_t head = line.find_first_not_of(" \t\n\r\f\v");
-                    size_t tail = line.find_last_not_of(" \t\n\r\f\v");
-                    if(head == std::string::npos || tail == std::string::npos) {
-                        continue; // skip empty lines
-                    }
-                    ids.push_back(line.substr(head, tail-head+1));
+        if (file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                // strim line to remove leading and trailing whitespace
+                size_t head = line.find_first_not_of(" \t\n\r\f\v");
+                size_t tail = line.find_last_not_of(" \t\n\r\f\v");
+                if(head == std::string::npos || tail == std::string::npos) {
+                    continue; // skip empty lines
                 }
-                file.close();
-            } else {
-                std::cout << "Error: Unable to open file " << file_path << "\n";
-                exit(1);
+                ids.push_back(line.substr(head, tail-head+1));
             }
         }
 
@@ -118,11 +121,37 @@ int main(int argc, char* argv[]){
         }
     } else if (command == "pick") {
         if (!values.empty() && result.count("branch")) {
-            std::string commit_id = values[0]; // 将第二个位置参数作为 pick 的值
+            std::vector<std::string> commit_hashes;
+            std::vector<GerritHelper::PickResult> picked_result;
+            if (file.is_open()) {
+                std::string line;
+                while (std::getline(file, line)) {
+                    // strim line to remove leading and trailing whitespace
+                    size_t head = line.find_first_not_of(" \t\n\r\f\v");
+                    size_t tail = line.find_last_not_of(" \t\n\r\f\v");
+                    if(head == std::string::npos || tail == std::string::npos) {
+                        continue; // skip empty lines
+                    }
+                    commit_hashes.push_back(line.substr(head, tail-head+1));
+                }
+            }else{
+                std::string commit_id = values[0]; // 将第二个位置参数作为 pick 的值
+                commit_hashes.push_back(commit_id);
+            }
             auto branches = result["branch"].as<std::vector<std::string>>();
-            helper.Pick(commit_id, branches);
+            helper.Pick(commit_hashes, branches, picked_result);
+            for(const auto& picked_info: picked_result){
+                std::cout << picked_info.commit_hash << ":\n";
+                std::cout << "      " << picked_info.branch << ":" << "Picked ";
+                if(picked_info.success){
+                    std::cout << OUTPUT_GREEN << "success" << COLOR_END << std::endl;
+                } else {
+                    std::cout << OUTPUT_RED << "fail" << COLOR_END << std::endl;
+                    std::cout << "          message:" << picked_info.message << std::endl;
+                }
+            }
         } else {
-            std::cout << "Error: No commit id or branch specified.\n";
+            std::cout << "Error: No commit_hash or branch specified.\n";
             std::cout << "Use --help for more information.\n";
             exit(1);
         }
